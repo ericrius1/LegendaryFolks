@@ -1,0 +1,57 @@
+{
+  "name": "gulp-starter",
+  "version": "0.1.1",
+  "description": "Gulp starter with common tasks and scenarios",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/greypants/gulp-starter.git"
+  },
+  "browser": {
+    "underscore": "backbone/node_modules/underscore",
+    "plugin": "./src/javascript/vendor/jquery-plugin.js",
+    "OrbitControls": "./src/javascript/vendor/OrbitControls.js",
+    "Perlin": "./src/javascript/vendor/Perlin.js",
+    "Stream": "./src/javascript/vendor/Stream.js",
+    "AudioController": "./src/javascript/vendor/AudioController.js",
+    "AudioTextuere": "./src/javascript/vendor/AudioTexture.js"
+  },
+  "browserify": {
+    "transform": [
+      "browserify-shim",
+      "coffeeify",
+      "hbsfy"
+    ]
+  },
+  "browserify-shim": {
+    "plugin": {
+      "exports": "plugin",
+      "depends": [
+        "jquery:$"
+      ]
+    }
+  },
+  "devDependencies": {
+    "browser-sync": "~0.8.2",
+    "browserify": "~3.36.0",
+    "browserify-shim": "~3.4.1",
+    "coffeeify": "~0.6.0",
+    "gulp": "^3.8.0",
+    "gulp-changed": "^0.4.1",
+    "gulp-imagemin": "^0.6.2",
+    "gulp-notify": "^1.4.2",
+    "gulp-ruby-sass": "^0.7.1",
+    "gulp-util": "^3.0.0",
+    "handlebars": "^1.3.0",
+    "hbsfy": "~1.3.2",
+    "pretty-hrtime": "~0.2.1",
+    "require-dir": "^0.1.0",
+    "vinyl-source-stream": "~0.1.1",
+    "watchify": "~0.10.1"
+  },
+  "dependencies": {
+    "backbone": "~1.1.2",
+    "jquery": "~2.1.0",
+    "three": "~0.68.0",
+    "tween.js": "~0.14.0"
+  }
+}
