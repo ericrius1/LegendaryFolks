@@ -38075,7 +38075,7 @@ controls = new THREE.OrbitControls(camera);
 
 audioController = new AudioController();
 
-card = new Card(scene, clock);
+card = new Card(scene, clock, camera);
 
 photos = new Photos(scene);
 
@@ -38115,10 +38115,12 @@ Perlin = require('Perlin');
 TWEEN = require('tween.js');
 
 Card = (function() {
-  function Card(scene, clock) {
+  function Card(scene, clock, camera) {
     var csd, fsd, geo, leftCardTween, leftInnerImage, leftInnerTexture, leftOuterImage, leftOuterTexture, leftTextures, rightOuterImage, rightOuterTexture, rightTextures;
     this.scene = scene;
     this.clock = clock;
+    this.camera = camera;
+    this.cardOpenTime = 2000;
     geo = new THREE.PlaneGeometry(17, 22);
     geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1);
     geo.applyMatrix(new THREE.Matrix4().makeTranslation(8.5, 0, 0));
@@ -38178,14 +38180,17 @@ Card = (function() {
     fsd = {
       rotY: -Math.PI * 0.8
     };
-    leftCardTween = new TWEEN.Tween(csd).to(fsd, 10000).onUpdate((function(_this) {
+    leftCardTween = new TWEEN.Tween(csd).to(fsd, this.cardOpenTime).onUpdate((function(_this) {
       return function() {
         return _this.leftCard.rotation.y = csd.rotY;
       };
     })(this)).start();
     leftCardTween.onComplete((function(_this) {
       return function() {
-        return _this.video.play();
+        _this.video.play();
+        return _this.video.onended = function() {
+          return console.log('yar');
+        };
       };
     })(this));
   }
@@ -38235,8 +38240,7 @@ Photos = (function() {
             });
             photo = new THREE.Mesh(new THREE.PlaneGeometry(image.width, image.height), mat);
             photo.scale.multiplyScalar(0.01);
-            photo.position.z += 10;
-            photo.position.x = i * 30;
+            photo.position.set(_.random(-100, 100), _.random(-100, 100), _.random(-100, 100));
             return _this.scene.add(photo);
           });
         };

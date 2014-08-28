@@ -18,8 +18,7 @@ class Photos
             map: texture
           photo = new THREE.Mesh(new THREE.PlaneGeometry(image.width, image.height), mat)
           photo.scale.multiplyScalar(0.01)
-          photo.position.z +=10
-          photo.position.x = i * 30
+          photo.position.set _.random(-100, 100), _.random(-100, 100), _.random(-100, 100)
           @scene.add photo
         )
         

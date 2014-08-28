@@ -7,7 +7,8 @@ TWEEN = require 'tween.js'
 #something gooffy and singing happy birthday
 
 class Card
-  constructor: (@scene, @clock)->
+  constructor: (@scene, @clock, @camera)->
+    @cardOpenTime = 2000
     geo = new THREE.PlaneGeometry(17, 22)
     geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1)
     geo.applyMatrix(new THREE.Matrix4().makeTranslation(8.5, 0, 0))
@@ -76,12 +77,15 @@ class Card
       rotY: -Math.PI * 0.8
 
     leftCardTween = new TWEEN.Tween(csd).
-      to(fsd, 10000).
+      to(fsd, @cardOpenTime).
       onUpdate(()=>
         @leftCard.rotation.y = csd.rotY
       ).start()
     leftCardTween.onComplete(()=>
       @video.play()
+      @video.onended = ->
+        console.log 'yar'
+      
       # csd = 
       #   rotY: @rightCard.rotation.y
       # fsd =

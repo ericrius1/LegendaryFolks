@@ -28,7 +28,7 @@ controls = new THREE.OrbitControls(camera)
 
 audioController = new AudioController()
 
-card = new Card(scene, clock)
+card = new Card(scene, clock, camera)
 
 photos = new Photos(scene)
 
