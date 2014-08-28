@@ -9,18 +9,27 @@ TWEEN = require 'tween.js'
 class Card
   constructor: (@scene, @clock, @camera)->
     @cardOpenTime = 2000
-    geo = new THREE.PlaneGeometry(17, 22)
+    @resolution = new THREE.Vector2(17,22)
+    geo = new THREE.PlaneGeometry(@resolution.x, @resolution.y)
+
     geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1)
-    geo.applyMatrix(new THREE.Matrix4().makeTranslation(8.5, 0, 0))
+
+    #So we rotate from the edge
+    geo.applyMatrix(new THREE.Matrix4().makeTranslation(@resolution.x/2, 0, 0))
 
 
            
-    leftInnerImage = document.createElement('img')
-    leftInnerImage.src = 'images/photos/1.jpg'
-    leftInnerTexture = new THREE.Texture(leftInnerImage)
-    leftInnerImage.addEventListener( 'load', ( event )-> 
-      leftInnerTexture.needsUpdate = true
-    )
+    @leftInnerMaterial = new THREE.ShaderMaterial
+      uniforms:
+        time:
+          type: 'f'
+          value: 0.0
+        resolution:
+          type: 'v2'
+          value: new THREE.Vector2(@resolution.x, @resolution.y)
+      vertexShader: document.getElementById('vertexShader').textContent,
+      fragmentShader: document.getElementById('fragmentShader').textContent
+
 
     leftOuterImage = document.createElement('img')
     leftOuterImage.src = 'images/flowers.jpg'
@@ -47,8 +56,8 @@ class Card
          
          
     leftTextures = [
-      new THREE.MeshBasicMaterial({map: leftOuterTexture, side: THREE.FrontSide})
-      new THREE.MeshBasicMaterial({map: leftInnerTexture, side: THREE.FrontSide}),
+      new THREE.MeshBasicMaterial({map: leftOuterTexture, side: THREE.FrontSide}),
+      @leftInnerMaterial,
     ]
     rightTextures = [
       new THREE.MeshBasicMaterial({map: @videoTexture, side: THREE.FrontSide}),
@@ -56,7 +65,6 @@ class Card
     ]
             
     @leftMat = new THREE.MeshFaceMaterial(leftTextures)
-
 
     @leftCard = new THREE.Mesh(geo, @leftMat)
     @leftCard.rotation.y = -Math.PI * .1
@@ -84,36 +92,42 @@ class Card
     leftCardTween.onComplete(()=>
       @video.play()
       @video.onended = =>
-        console.log 'yar'
         csd = 
           posZ : @camera.position.z
         fsd = 
           posZ : @camera.position.z + 100
-        camTween = new TWEEN.Tween(csd).
-          to(fsd, 5000).
-          onUpdate(()=>
-            console.log fsd.posZ
-            @camera.position.z = csd.posZ
-          ).start()
+        
 
-      # csd = 
-      #   rotY: @rightCard.rotation.y
-      # fsd =
-      #   rotY: -Math.PI
-      # rightCardTween = new TWEEN.Tween(csd).
-      #   to(fsd, 10000).
-      #   onUpdate(()=>
-      #     @rightCard.rotation.y = csd.rotY
-      #   ).start()
+        # camTween = new TWEEN.Tween(csd).
+        #   to(fsd, 5000).
+        #   onUpdate(()=>
+        #     console.log fsd.posZ
+        #     @camera.position.z = csd.posZ
+        #   ).start()
+
+        csd = 
+          rotY: @rightCard.rotation.y
+        fsd =
+          rotY: @leftCard.rotation.y + .1
+        rightCardTween = new TWEEN.Tween(csd).
+          to(fsd, 2000).
+          onUpdate(()=>
+            @rightCard.rotation.y = csd.rotY
+          ).start()
+        rightCardTween.onComplete(()=>
+          @explodeCard()
+        )
     )
 
-
+  explodeCard: ->
+    console.log 'yar'
 
   update: (time)->
       
     @leftCard.geometry.verticesNeedUpdate = true
     @leftCard.geometry.computeFaceNormals()
     @leftCard.geometry.normalsNeedUpdate = true
+    @leftInnerMaterial.uniforms.time.value = time
 
     if @video.readyState is @video.HAVE_ENOUGH_DATA
       @videoTexture.needsUpdate = true

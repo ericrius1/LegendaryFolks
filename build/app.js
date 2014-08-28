@@ -38116,19 +38116,28 @@ TWEEN = require('tween.js');
 
 Card = (function() {
   function Card(scene, clock, camera) {
-    var csd, fsd, geo, leftCardTween, leftInnerImage, leftInnerTexture, leftOuterImage, leftOuterTexture, leftTextures, rightOuterImage, rightOuterTexture, rightTextures;
+    var csd, fsd, geo, leftCardTween, leftOuterImage, leftOuterTexture, leftTextures, rightOuterImage, rightOuterTexture, rightTextures;
     this.scene = scene;
     this.clock = clock;
     this.camera = camera;
     this.cardOpenTime = 2000;
-    geo = new THREE.PlaneGeometry(17, 22);
+    this.resolution = new THREE.Vector2(17, 22);
+    geo = new THREE.PlaneGeometry(this.resolution.x, this.resolution.y);
     geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1);
-    geo.applyMatrix(new THREE.Matrix4().makeTranslation(8.5, 0, 0));
-    leftInnerImage = document.createElement('img');
-    leftInnerImage.src = 'images/photos/1.jpg';
-    leftInnerTexture = new THREE.Texture(leftInnerImage);
-    leftInnerImage.addEventListener('load', function(event) {
-      return leftInnerTexture.needsUpdate = true;
+    geo.applyMatrix(new THREE.Matrix4().makeTranslation(this.resolution.x / 2, 0, 0));
+    this.leftInnerMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: {
+          type: 'f',
+          value: 0.0
+        },
+        resolution: {
+          type: 'v2',
+          value: new THREE.Vector2(this.resolution.x, this.resolution.y)
+        }
+      },
+      vertexShader: document.getElementById('vertexShader').textContent,
+      fragmentShader: document.getElementById('fragmentShader').textContent
     });
     leftOuterImage = document.createElement('img');
     leftOuterImage.src = 'images/flowers.jpg';
@@ -38152,10 +38161,7 @@ Card = (function() {
       new THREE.MeshBasicMaterial({
         map: leftOuterTexture,
         side: THREE.FrontSide
-      }), new THREE.MeshBasicMaterial({
-        map: leftInnerTexture,
-        side: THREE.FrontSide
-      })
+      }), this.leftInnerMaterial
     ];
     rightTextures = [
       new THREE.MeshBasicMaterial({
@@ -38189,27 +38195,39 @@ Card = (function() {
       return function() {
         _this.video.play();
         return _this.video.onended = function() {
-          var camTween;
-          console.log('yar');
+          var rightCardTween;
           csd = {
             posZ: _this.camera.position.z
           };
           fsd = {
             posZ: _this.camera.position.z + 100
           };
-          return camTween = new TWEEN.Tween(csd).to(fsd, 5000).onUpdate(function() {
-            console.log(fsd.posZ);
-            return _this.camera.position.z = csd.posZ;
+          csd = {
+            rotY: _this.rightCard.rotation.y
+          };
+          fsd = {
+            rotY: _this.leftCard.rotation.y + .1
+          };
+          rightCardTween = new TWEEN.Tween(csd).to(fsd, 2000).onUpdate(function() {
+            return _this.rightCard.rotation.y = csd.rotY;
           }).start();
+          return rightCardTween.onComplete(function() {
+            return _this.explodeCard();
+          });
         };
       };
     })(this));
   }
 
+  Card.prototype.explodeCard = function() {
+    return console.log('yar');
+  };
+
   Card.prototype.update = function(time) {
     this.leftCard.geometry.verticesNeedUpdate = true;
     this.leftCard.geometry.computeFaceNormals();
     this.leftCard.geometry.normalsNeedUpdate = true;
+    this.leftInnerMaterial.uniforms.time.value = time;
     if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
       return this.videoTexture.needsUpdate = true;
     }
