@@ -83,9 +83,19 @@ class Card
       ).start()
     leftCardTween.onComplete(()=>
       @video.play()
-      @video.onended = ->
+      @video.onended = =>
         console.log 'yar'
-      
+        csd = 
+          posZ : @camera.position.z
+        fsd = 
+          posZ : @camera.position.z + 100
+        camTween = new TWEEN.Tween(csd).
+          to(fsd, 5000).
+          onUpdate(()=>
+            console.log fsd.posZ
+            @camera.position.z = csd.posZ
+          ).start()
+
       # csd = 
       #   rotY: @rightCard.rotation.y
       # fsd =
