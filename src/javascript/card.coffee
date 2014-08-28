@@ -1,63 +1,108 @@
 THREE = require 'three'
 _ = require 'underscore'
 Perlin = require 'Perlin'
+TWEEN = require 'tween.js'
+
+#Have the camera trained on a cheesy painting so its paused when the card opens, then pan away and focus on me and rel doing 
+#something gooffy and singing happy birthday
 
 class Card
   constructor: (@scene, @clock)->
-    @canvas = document.createElement 'canvas'
-    @canvas.height = 1000
-    @canvas.width = 1000
-    @ctx = @canvas.getContext '2d'
-    @canvasTexture = new THREE.Texture(@canvas)
-    @ctx.fillStyle = 'white'
-    @ctx.fillRect(0, 0, @canvas.width, @canvas.height)
-    @ctx.fillStyle = 'red'
-    @firePos = new THREE.Vector2 550, 500
-    @flameSize = 20
-    @ctx.fillRect(@firePos.x, @firePos.y, @flameSize, @flameSize)
-    size = 10
-    geo = new THREE.PlaneGeometry(size, size, 2, 1)
-    # mat = new THREE.MeshNormalMaterial
-    #   side: THREE.DoubleSide
-    #   wireframe: true
-    mat = new THREE.MeshPhongMaterial
-      map: @canvasTexture
-    @cardMesh = new THREE.Mesh geo, mat
-    geo.vertices[0] = geo.vertices[2].clone()
-    geo.vertices[3] = geo.vertices[5].clone()
-    @scene.add @cardMesh
-    @radius = 5
-    @fireRange = 20
-    @perlin = new Perlin()
+    geo = new THREE.PlaneGeometry(17, 22)
+    geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1)
+    geo.applyMatrix(new THREE.Matrix4().makeTranslation(8.5, 0, 0))
 
-    @canvasTexture.needsUpdate = true
-    @flicker()
 
-  flicker : ()->
-    @ctx.fillStyle = 'white'
-    @ctx.fillRect 0, 0, @canvas.width, @canvas.height
-    @ctx.fillStyle = 'red'
-    time = @clock.getElapsedTime()
-    @firePos.x += @perlin.simplex2(@firePos.x, time) * 10
-    @firePos.y += @perlin.simplex2(@firePos.y, time) * 10
-    @ctx.fillRect(@firePos.x, @firePos.y, @flameSize, @flameSize)
-    @canvasTexture.needsUpdate = true
+           
+    leftInnerImage = document.createElement('img')
+    leftInnerImage.src = 'images/photos/1.jpg'
+    leftInnerTexture = new THREE.Texture(leftInnerImage)
+    leftInnerImage.addEventListener( 'load', ( event )-> 
+      leftInnerTexture.needsUpdate = true
+    )
 
-    setTimeout ()=>
-      @flicker()
-    , 400
+    leftOuterImage = document.createElement('img')
+    leftOuterImage.src = 'images/flowers.jpg'
+    leftOuterTexture = new THREE.Texture(leftOuterImage);
+    leftOuterImage.addEventListener( 'load',  ( event )-> 
+      leftOuterTexture.needsUpdate = true;
+    )
+
+
+    @video = document.getElementById('video')
+    @videoTexture = new THREE.Texture @video
+    @videoTexture.minFilter = THREE.LinearFilter;
+    @videoTexture.magFilter = THREE.LinearFilter;
+    @videoTexture.format = THREE.RGBFormat;
+    @videoTexture.generateMipmaps = false;
+
+    rightOuterImage = document.createElement('img')
+    rightOuterImage.src = 'images/outer-back.jpg'
+    rightOuterTexture = new THREE.Texture(rightOuterImage);
+    rightOuterImage.addEventListener( 'load',  ( event )-> 
+      rightOuterTexture.needsUpdate = true;
+    )
+         
+         
+         
+    leftTextures = [
+      new THREE.MeshBasicMaterial({map: leftOuterTexture, side: THREE.FrontSide})
+      new THREE.MeshBasicMaterial({map: leftInnerTexture, side: THREE.FrontSide}),
+    ]
+    rightTextures = [
+      new THREE.MeshBasicMaterial({map: @videoTexture, side: THREE.FrontSide}),
+      new THREE.MeshBasicMaterial({map: rightOuterTexture, side: THREE.FrontSide})
+    ]
+            
+    @leftMat = new THREE.MeshFaceMaterial(leftTextures)
+
+
+    @leftCard = new THREE.Mesh(geo, @leftMat)
+    @leftCard.rotation.y = -Math.PI * .1
+    # @leftCard.position.x -=10
+    @scene.add @leftCard
+
+
+    @rightMat = new THREE.MeshFaceMaterial(rightTextures)
+
+    @rightCard = new THREE.Mesh(geo, @rightMat)
+    @rightCard.rotation.y = -Math.PI * .1
+    # @rightCard.position.x -=10
+    @scene.add @rightCard
+
+    csd = 
+      rotY: @leftCard.rotation.y
+    fsd = 
+      rotY: -Math.PI * 0.8
+
+    leftCardTween = new TWEEN.Tween(csd).
+      to(fsd, 10000).
+      onUpdate(()=>
+        @leftCard.rotation.y = csd.rotY
+      ).start()
+    leftCardTween.onComplete(()=>
+      @video.play()
+      # csd = 
+      #   rotY: @rightCard.rotation.y
+      # fsd =
+      #   rotY: -Math.PI
+      # rightCardTween = new TWEEN.Tween(csd).
+      #   to(fsd, 10000).
+      #   onUpdate(()=>
+      #     @rightCard.rotation.y = csd.rotY
+      #   ).start()
+    )
+
+
 
   update: (time)->
-    if(@cardMesh.geometry.vertices[0].z < 0)
-      return
       
-    else
-      @cardMesh.geometry.vertices[0].x = @radius * Math.cos(time)
-      @cardMesh.geometry.vertices[0].z = @radius * Math.sin(time)
-      @cardMesh.geometry.vertices[3].x = @radius * Math.cos(time)
-      @cardMesh.geometry.vertices[3].z = @radius * Math.sin(time)
-      @cardMesh.geometry.verticesNeedUpdate = true
-      @cardMesh.geometry.computeFaceNormals()
-      @cardMesh.geometry.normalsNeedUpdate = true
+    @leftCard.geometry.verticesNeedUpdate = true
+    @leftCard.geometry.computeFaceNormals()
+    @leftCard.geometry.normalsNeedUpdate = true
+
+    if @video.readyState is @video.HAVE_ENOUGH_DATA
+      @videoTexture.needsUpdate = true
+
 
 module.exports = Card

@@ -33,7 +33,6 @@
   AudioTexture.prototype.processAudio = function() {
 
     var audioTextureData = new Float32Array(this.width * 4);
-    //console.log( this.analyser.array[20]);
     for (var i = 0; i < this.width; i += 4) {
 
       audioTextureData[i + 0] = this.analyser.array[(i / 4) + 0] / 256;

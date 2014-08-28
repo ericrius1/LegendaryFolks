@@ -37273,7 +37273,765 @@ if (typeof exports !== 'undefined') {
 }
 
 },{}],3:[function(require,module,exports){
-var AudioController, AudioTexture, Card, HEIGHT, Stream, THREE, WIDTH, animate, audioController, camera, card, clock, controls, light, renderer, scene, stream, time;
+/**
+ * Tween.js - Licensed under the MIT license
+ * https://github.com/sole/tween.js
+ * ----------------------------------------------
+ *
+ * See https://github.com/sole/tween.js/graphs/contributors for the full list of contributors.
+ * Thank you all, you're awesome!
+ */
+
+// Date.now shim for (ahem) Internet Explo(d|r)er
+if ( Date.now === undefined ) {
+
+	Date.now = function () {
+
+		return new Date().valueOf();
+
+	};
+
+}
+
+var TWEEN = TWEEN || ( function () {
+
+	var _tweens = [];
+
+	return {
+
+		REVISION: '14',
+
+		getAll: function () {
+
+			return _tweens;
+
+		},
+
+		removeAll: function () {
+
+			_tweens = [];
+
+		},
+
+		add: function ( tween ) {
+
+			_tweens.push( tween );
+
+		},
+
+		remove: function ( tween ) {
+
+			var i = _tweens.indexOf( tween );
+
+			if ( i !== -1 ) {
+
+				_tweens.splice( i, 1 );
+
+			}
+
+		},
+
+		update: function ( time ) {
+
+			if ( _tweens.length === 0 ) return false;
+
+			var i = 0;
+
+			time = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
+
+			while ( i < _tweens.length ) {
+
+				if ( _tweens[ i ].update( time ) ) {
+
+					i++;
+
+				} else {
+
+					_tweens.splice( i, 1 );
+
+				}
+
+			}
+
+			return true;
+
+		}
+	};
+
+} )();
+
+TWEEN.Tween = function ( object ) {
+
+	var _object = object;
+	var _valuesStart = {};
+	var _valuesEnd = {};
+	var _valuesStartRepeat = {};
+	var _duration = 1000;
+	var _repeat = 0;
+	var _yoyo = false;
+	var _isPlaying = false;
+	var _reversed = false;
+	var _delayTime = 0;
+	var _startTime = null;
+	var _easingFunction = TWEEN.Easing.Linear.None;
+	var _interpolationFunction = TWEEN.Interpolation.Linear;
+	var _chainedTweens = [];
+	var _onStartCallback = null;
+	var _onStartCallbackFired = false;
+	var _onUpdateCallback = null;
+	var _onCompleteCallback = null;
+	var _onStopCallback = null;
+
+	// Set all starting values present on the target object
+	for ( var field in object ) {
+
+		_valuesStart[ field ] = parseFloat(object[field], 10);
+
+	}
+
+	this.to = function ( properties, duration ) {
+
+		if ( duration !== undefined ) {
+
+			_duration = duration;
+
+		}
+
+		_valuesEnd = properties;
+
+		return this;
+
+	};
+
+	this.start = function ( time ) {
+
+		TWEEN.add( this );
+
+		_isPlaying = true;
+
+		_onStartCallbackFired = false;
+
+		_startTime = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
+		_startTime += _delayTime;
+
+		for ( var property in _valuesEnd ) {
+
+			// check if an Array was provided as property value
+			if ( _valuesEnd[ property ] instanceof Array ) {
+
+				if ( _valuesEnd[ property ].length === 0 ) {
+
+					continue;
+
+				}
+
+				// create a local copy of the Array with the start value at the front
+				_valuesEnd[ property ] = [ _object[ property ] ].concat( _valuesEnd[ property ] );
+
+			}
+
+			_valuesStart[ property ] = _object[ property ];
+
+			if( ( _valuesStart[ property ] instanceof Array ) === false ) {
+				_valuesStart[ property ] *= 1.0; // Ensures we're using numbers, not strings
+			}
+
+			_valuesStartRepeat[ property ] = _valuesStart[ property ] || 0;
+
+		}
+
+		return this;
+
+	};
+
+	this.stop = function () {
+
+		if ( !_isPlaying ) {
+			return this;
+		}
+
+		TWEEN.remove( this );
+		_isPlaying = false;
+
+		if ( _onStopCallback !== null ) {
+
+			_onStopCallback.call( _object );
+
+		}
+
+		this.stopChainedTweens();
+		return this;
+
+	};
+
+	this.stopChainedTweens = function () {
+
+		for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
+
+			_chainedTweens[ i ].stop();
+
+		}
+
+	};
+
+	this.delay = function ( amount ) {
+
+		_delayTime = amount;
+		return this;
+
+	};
+
+	this.repeat = function ( times ) {
+
+		_repeat = times;
+		return this;
+
+	};
+
+	this.yoyo = function( yoyo ) {
+
+		_yoyo = yoyo;
+		return this;
+
+	};
+
+
+	this.easing = function ( easing ) {
+
+		_easingFunction = easing;
+		return this;
+
+	};
+
+	this.interpolation = function ( interpolation ) {
+
+		_interpolationFunction = interpolation;
+		return this;
+
+	};
+
+	this.chain = function () {
+
+		_chainedTweens = arguments;
+		return this;
+
+	};
+
+	this.onStart = function ( callback ) {
+
+		_onStartCallback = callback;
+		return this;
+
+	};
+
+	this.onUpdate = function ( callback ) {
+
+		_onUpdateCallback = callback;
+		return this;
+
+	};
+
+	this.onComplete = function ( callback ) {
+
+		_onCompleteCallback = callback;
+		return this;
+
+	};
+
+	this.onStop = function ( callback ) {
+
+		_onStopCallback = callback;
+		return this;
+
+	};
+
+	this.update = function ( time ) {
+
+		var property;
+
+		if ( time < _startTime ) {
+
+			return true;
+
+		}
+
+		if ( _onStartCallbackFired === false ) {
+
+			if ( _onStartCallback !== null ) {
+
+				_onStartCallback.call( _object );
+
+			}
+
+			_onStartCallbackFired = true;
+
+		}
+
+		var elapsed = ( time - _startTime ) / _duration;
+		elapsed = elapsed > 1 ? 1 : elapsed;
+
+		var value = _easingFunction( elapsed );
+
+		for ( property in _valuesEnd ) {
+
+			var start = _valuesStart[ property ] || 0;
+			var end = _valuesEnd[ property ];
+
+			if ( end instanceof Array ) {
+
+				_object[ property ] = _interpolationFunction( end, value );
+
+			} else {
+
+				// Parses relative end values with start as base (e.g.: +10, -3)
+				if ( typeof(end) === "string" ) {
+					end = start + parseFloat(end, 10);
+				}
+
+				// protect against non numeric properties.
+				if ( typeof(end) === "number" ) {
+					_object[ property ] = start + ( end - start ) * value;
+				}
+
+			}
+
+		}
+
+		if ( _onUpdateCallback !== null ) {
+
+			_onUpdateCallback.call( _object, value );
+
+		}
+
+		if ( elapsed == 1 ) {
+
+			if ( _repeat > 0 ) {
+
+				if( isFinite( _repeat ) ) {
+					_repeat--;
+				}
+
+				// reassign starting values, restart by making startTime = now
+				for( property in _valuesStartRepeat ) {
+
+					if ( typeof( _valuesEnd[ property ] ) === "string" ) {
+						_valuesStartRepeat[ property ] = _valuesStartRepeat[ property ] + parseFloat(_valuesEnd[ property ], 10);
+					}
+
+					if (_yoyo) {
+						var tmp = _valuesStartRepeat[ property ];
+						_valuesStartRepeat[ property ] = _valuesEnd[ property ];
+						_valuesEnd[ property ] = tmp;
+					}
+
+					_valuesStart[ property ] = _valuesStartRepeat[ property ];
+
+				}
+
+				if (_yoyo) {
+					_reversed = !_reversed;
+				}
+
+				_startTime = time + _delayTime;
+
+				return true;
+
+			} else {
+
+				if ( _onCompleteCallback !== null ) {
+
+					_onCompleteCallback.call( _object );
+
+				}
+
+				for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
+
+					_chainedTweens[ i ].start( time );
+
+				}
+
+				return false;
+
+			}
+
+		}
+
+		return true;
+
+	};
+
+};
+
+
+TWEEN.Easing = {
+
+	Linear: {
+
+		None: function ( k ) {
+
+			return k;
+
+		}
+
+	},
+
+	Quadratic: {
+
+		In: function ( k ) {
+
+			return k * k;
+
+		},
+
+		Out: function ( k ) {
+
+			return k * ( 2 - k );
+
+		},
+
+		InOut: function ( k ) {
+
+			if ( ( k *= 2 ) < 1 ) return 0.5 * k * k;
+			return - 0.5 * ( --k * ( k - 2 ) - 1 );
+
+		}
+
+	},
+
+	Cubic: {
+
+		In: function ( k ) {
+
+			return k * k * k;
+
+		},
+
+		Out: function ( k ) {
+
+			return --k * k * k + 1;
+
+		},
+
+		InOut: function ( k ) {
+
+			if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k;
+			return 0.5 * ( ( k -= 2 ) * k * k + 2 );
+
+		}
+
+	},
+
+	Quartic: {
+
+		In: function ( k ) {
+
+			return k * k * k * k;
+
+		},
+
+		Out: function ( k ) {
+
+			return 1 - ( --k * k * k * k );
+
+		},
+
+		InOut: function ( k ) {
+
+			if ( ( k *= 2 ) < 1) return 0.5 * k * k * k * k;
+			return - 0.5 * ( ( k -= 2 ) * k * k * k - 2 );
+
+		}
+
+	},
+
+	Quintic: {
+
+		In: function ( k ) {
+
+			return k * k * k * k * k;
+
+		},
+
+		Out: function ( k ) {
+
+			return --k * k * k * k * k + 1;
+
+		},
+
+		InOut: function ( k ) {
+
+			if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k * k * k;
+			return 0.5 * ( ( k -= 2 ) * k * k * k * k + 2 );
+
+		}
+
+	},
+
+	Sinusoidal: {
+
+		In: function ( k ) {
+
+			return 1 - Math.cos( k * Math.PI / 2 );
+
+		},
+
+		Out: function ( k ) {
+
+			return Math.sin( k * Math.PI / 2 );
+
+		},
+
+		InOut: function ( k ) {
+
+			return 0.5 * ( 1 - Math.cos( Math.PI * k ) );
+
+		}
+
+	},
+
+	Exponential: {
+
+		In: function ( k ) {
+
+			return k === 0 ? 0 : Math.pow( 1024, k - 1 );
+
+		},
+
+		Out: function ( k ) {
+
+			return k === 1 ? 1 : 1 - Math.pow( 2, - 10 * k );
+
+		},
+
+		InOut: function ( k ) {
+
+			if ( k === 0 ) return 0;
+			if ( k === 1 ) return 1;
+			if ( ( k *= 2 ) < 1 ) return 0.5 * Math.pow( 1024, k - 1 );
+			return 0.5 * ( - Math.pow( 2, - 10 * ( k - 1 ) ) + 2 );
+
+		}
+
+	},
+
+	Circular: {
+
+		In: function ( k ) {
+
+			return 1 - Math.sqrt( 1 - k * k );
+
+		},
+
+		Out: function ( k ) {
+
+			return Math.sqrt( 1 - ( --k * k ) );
+
+		},
+
+		InOut: function ( k ) {
+
+			if ( ( k *= 2 ) < 1) return - 0.5 * ( Math.sqrt( 1 - k * k) - 1);
+			return 0.5 * ( Math.sqrt( 1 - ( k -= 2) * k) + 1);
+
+		}
+
+	},
+
+	Elastic: {
+
+		In: function ( k ) {
+
+			var s, a = 0.1, p = 0.4;
+			if ( k === 0 ) return 0;
+			if ( k === 1 ) return 1;
+			if ( !a || a < 1 ) { a = 1; s = p / 4; }
+			else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
+			return - ( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) );
+
+		},
+
+		Out: function ( k ) {
+
+			var s, a = 0.1, p = 0.4;
+			if ( k === 0 ) return 0;
+			if ( k === 1 ) return 1;
+			if ( !a || a < 1 ) { a = 1; s = p / 4; }
+			else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
+			return ( a * Math.pow( 2, - 10 * k) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) + 1 );
+
+		},
+
+		InOut: function ( k ) {
+
+			var s, a = 0.1, p = 0.4;
+			if ( k === 0 ) return 0;
+			if ( k === 1 ) return 1;
+			if ( !a || a < 1 ) { a = 1; s = p / 4; }
+			else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
+			if ( ( k *= 2 ) < 1 ) return - 0.5 * ( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) );
+			return a * Math.pow( 2, -10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) * 0.5 + 1;
+
+		}
+
+	},
+
+	Back: {
+
+		In: function ( k ) {
+
+			var s = 1.70158;
+			return k * k * ( ( s + 1 ) * k - s );
+
+		},
+
+		Out: function ( k ) {
+
+			var s = 1.70158;
+			return --k * k * ( ( s + 1 ) * k + s ) + 1;
+
+		},
+
+		InOut: function ( k ) {
+
+			var s = 1.70158 * 1.525;
+			if ( ( k *= 2 ) < 1 ) return 0.5 * ( k * k * ( ( s + 1 ) * k - s ) );
+			return 0.5 * ( ( k -= 2 ) * k * ( ( s + 1 ) * k + s ) + 2 );
+
+		}
+
+	},
+
+	Bounce: {
+
+		In: function ( k ) {
+
+			return 1 - TWEEN.Easing.Bounce.Out( 1 - k );
+
+		},
+
+		Out: function ( k ) {
+
+			if ( k < ( 1 / 2.75 ) ) {
+
+				return 7.5625 * k * k;
+
+			} else if ( k < ( 2 / 2.75 ) ) {
+
+				return 7.5625 * ( k -= ( 1.5 / 2.75 ) ) * k + 0.75;
+
+			} else if ( k < ( 2.5 / 2.75 ) ) {
+
+				return 7.5625 * ( k -= ( 2.25 / 2.75 ) ) * k + 0.9375;
+
+			} else {
+
+				return 7.5625 * ( k -= ( 2.625 / 2.75 ) ) * k + 0.984375;
+
+			}
+
+		},
+
+		InOut: function ( k ) {
+
+			if ( k < 0.5 ) return TWEEN.Easing.Bounce.In( k * 2 ) * 0.5;
+			return TWEEN.Easing.Bounce.Out( k * 2 - 1 ) * 0.5 + 0.5;
+
+		}
+
+	}
+
+};
+
+TWEEN.Interpolation = {
+
+	Linear: function ( v, k ) {
+
+		var m = v.length - 1, f = m * k, i = Math.floor( f ), fn = TWEEN.Interpolation.Utils.Linear;
+
+		if ( k < 0 ) return fn( v[ 0 ], v[ 1 ], f );
+		if ( k > 1 ) return fn( v[ m ], v[ m - 1 ], m - f );
+
+		return fn( v[ i ], v[ i + 1 > m ? m : i + 1 ], f - i );
+
+	},
+
+	Bezier: function ( v, k ) {
+
+		var b = 0, n = v.length - 1, pw = Math.pow, bn = TWEEN.Interpolation.Utils.Bernstein, i;
+
+		for ( i = 0; i <= n; i++ ) {
+			b += pw( 1 - k, n - i ) * pw( k, i ) * v[ i ] * bn( n, i );
+		}
+
+		return b;
+
+	},
+
+	CatmullRom: function ( v, k ) {
+
+		var m = v.length - 1, f = m * k, i = Math.floor( f ), fn = TWEEN.Interpolation.Utils.CatmullRom;
+
+		if ( v[ 0 ] === v[ m ] ) {
+
+			if ( k < 0 ) i = Math.floor( f = m * ( 1 + k ) );
+
+			return fn( v[ ( i - 1 + m ) % m ], v[ i ], v[ ( i + 1 ) % m ], v[ ( i + 2 ) % m ], f - i );
+
+		} else {
+
+			if ( k < 0 ) return v[ 0 ] - ( fn( v[ 0 ], v[ 0 ], v[ 1 ], v[ 1 ], -f ) - v[ 0 ] );
+			if ( k > 1 ) return v[ m ] - ( fn( v[ m ], v[ m ], v[ m - 1 ], v[ m - 1 ], f - m ) - v[ m ] );
+
+			return fn( v[ i ? i - 1 : 0 ], v[ i ], v[ m < i + 1 ? m : i + 1 ], v[ m < i + 2 ? m : i + 2 ], f - i );
+
+		}
+
+	},
+
+	Utils: {
+
+		Linear: function ( p0, p1, t ) {
+
+			return ( p1 - p0 ) * t + p0;
+
+		},
+
+		Bernstein: function ( n , i ) {
+
+			var fc = TWEEN.Interpolation.Utils.Factorial;
+			return fc( n ) / fc( i ) / fc( n - i );
+
+		},
+
+		Factorial: ( function () {
+
+			var a = [ 1 ];
+
+			return function ( n ) {
+
+				var s = 1, i;
+				if ( a[ n ] ) return a[ n ];
+				for ( i = n; i > 1; i-- ) s *= i;
+				return a[ n ] = s;
+
+			};
+
+		} )(),
+
+		CatmullRom: function ( p0, p1, p2, p3, t ) {
+
+			var v0 = ( p2 - p0 ) * 0.5, v1 = ( p3 - p1 ) * 0.5, t2 = t * t, t3 = t * t2;
+			return ( 2 * p1 - 2 * p2 + v0 + v1 ) * t3 + ( - 3 * p1 + 3 * p2 - 2 * v0 - v1 ) * t2 + v0 * t + p1;
+
+		}
+
+	}
+
+};
+
+module.exports=TWEEN;
+},{}],4:[function(require,module,exports){
+var AudioController, AudioTexture, Card, HEIGHT, Photos, Stream, THREE, TWEEN, WIDTH, animate, audioController, camera, card, clock, controls, onWindowResize, photos, renderer, scene, time;
 
 THREE = require('three');
 
@@ -37281,11 +38039,15 @@ controls = require('OrbitControls');
 
 Card = require('./card');
 
+Photos = require('./photos');
+
 AudioController = require('./vendor/AudioController');
 
 AudioTexture = require('./vendor/AudioTexture');
 
 Stream = require('./vendor/Stream');
+
+TWEEN = require('tween.js');
 
 time = null;
 
@@ -37297,11 +38059,13 @@ clock = new THREE.Clock();
 
 scene = new THREE.Scene();
 
-camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 1, 2000);
+camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.001, 20000);
 
-camera.position.z = 30;
+camera.position.z = 50;
 
-renderer = new THREE.WebGLRenderer();
+renderer = new THREE.WebGLRenderer({
+  antialias: true
+});
 
 renderer.setSize(WIDTH, HEIGHT);
 
@@ -37309,35 +38073,38 @@ document.body.appendChild(renderer.domElement);
 
 controls = new THREE.OrbitControls(camera);
 
-light = new THREE.PointLight(new THREE.Color(0xffffff), 1, 100);
-
-light.position.z = 30;
-
-scene.add(light);
+audioController = new AudioController();
 
 card = new Card(scene, clock);
 
-debugger;
-
-audioController = new AudioController();
-
-stream = new Stream('/audio/fire.mp3', audioController);
-
-stream.play();
+photos = new Photos(scene);
 
 animate = function() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
+  audioController.update();
   controls.update();
+  photos.update();
   time = clock.getElapsedTime();
-  return card.update(time);
+  card.update(time);
+  return TWEEN.update();
+};
+
+window.onload = function() {
+  return window.addEventListener('resize', onWindowResize, false);
+};
+
+onWindowResize = function() {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  return camera.updateProjectionMatrix();
 };
 
 animate();
 
 
-},{"./card":4,"./vendor/AudioController":5,"./vendor/AudioTexture":6,"./vendor/Stream":9,"OrbitControls":7,"three":2}],4:[function(require,module,exports){
-var Card, Perlin, THREE, _;
+},{"./card":5,"./photos":6,"./vendor/AudioController":7,"./vendor/AudioTexture":8,"./vendor/Stream":11,"OrbitControls":9,"three":2,"tween.js":3}],5:[function(require,module,exports){
+var Card, Perlin, THREE, TWEEN, _;
 
 THREE = require('three');
 
@@ -37345,66 +38112,90 @@ _ = require('underscore');
 
 Perlin = require('Perlin');
 
+TWEEN = require('tween.js');
+
 Card = (function() {
   function Card(scene, clock) {
-    var geo, mat, size;
+    var csd, fsd, geo, leftCardTween, leftInnerImage, leftInnerTexture, leftOuterImage, leftOuterTexture, leftTextures, rightOuterImage, rightOuterTexture, rightTextures;
     this.scene = scene;
     this.clock = clock;
-    this.canvas = document.createElement('canvas');
-    this.canvas.height = 1000;
-    this.canvas.width = 1000;
-    this.ctx = this.canvas.getContext('2d');
-    this.canvasTexture = new THREE.Texture(this.canvas);
-    this.ctx.fillStyle = 'white';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.fillStyle = 'red';
-    this.firePos = new THREE.Vector2(550, 500);
-    this.flameSize = 20;
-    this.ctx.fillRect(this.firePos.x, this.firePos.y, this.flameSize, this.flameSize);
-    size = 10;
-    geo = new THREE.PlaneGeometry(size, size, 2, 1);
-    mat = new THREE.MeshPhongMaterial({
-      map: this.canvasTexture
+    geo = new THREE.PlaneGeometry(17, 22);
+    geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1);
+    geo.applyMatrix(new THREE.Matrix4().makeTranslation(8.5, 0, 0));
+    leftInnerImage = document.createElement('img');
+    leftInnerImage.src = 'images/photos/1.jpg';
+    leftInnerTexture = new THREE.Texture(leftInnerImage);
+    leftInnerImage.addEventListener('load', function(event) {
+      return leftInnerTexture.needsUpdate = true;
     });
-    this.cardMesh = new THREE.Mesh(geo, mat);
-    geo.vertices[0] = geo.vertices[2].clone();
-    geo.vertices[3] = geo.vertices[5].clone();
-    this.scene.add(this.cardMesh);
-    this.radius = 5;
-    this.fireRange = 20;
-    this.perlin = new Perlin();
-    this.canvasTexture.needsUpdate = true;
-    this.flicker();
+    leftOuterImage = document.createElement('img');
+    leftOuterImage.src = 'images/flowers.jpg';
+    leftOuterTexture = new THREE.Texture(leftOuterImage);
+    leftOuterImage.addEventListener('load', function(event) {
+      return leftOuterTexture.needsUpdate = true;
+    });
+    this.video = document.getElementById('video');
+    this.videoTexture = new THREE.Texture(this.video);
+    this.videoTexture.minFilter = THREE.LinearFilter;
+    this.videoTexture.magFilter = THREE.LinearFilter;
+    this.videoTexture.format = THREE.RGBFormat;
+    this.videoTexture.generateMipmaps = false;
+    rightOuterImage = document.createElement('img');
+    rightOuterImage.src = 'images/outer-back.jpg';
+    rightOuterTexture = new THREE.Texture(rightOuterImage);
+    rightOuterImage.addEventListener('load', function(event) {
+      return rightOuterTexture.needsUpdate = true;
+    });
+    leftTextures = [
+      new THREE.MeshBasicMaterial({
+        map: leftOuterTexture,
+        side: THREE.FrontSide
+      }), new THREE.MeshBasicMaterial({
+        map: leftInnerTexture,
+        side: THREE.FrontSide
+      })
+    ];
+    rightTextures = [
+      new THREE.MeshBasicMaterial({
+        map: this.videoTexture,
+        side: THREE.FrontSide
+      }), new THREE.MeshBasicMaterial({
+        map: rightOuterTexture,
+        side: THREE.FrontSide
+      })
+    ];
+    this.leftMat = new THREE.MeshFaceMaterial(leftTextures);
+    this.leftCard = new THREE.Mesh(geo, this.leftMat);
+    this.leftCard.rotation.y = -Math.PI * .1;
+    this.scene.add(this.leftCard);
+    this.rightMat = new THREE.MeshFaceMaterial(rightTextures);
+    this.rightCard = new THREE.Mesh(geo, this.rightMat);
+    this.rightCard.rotation.y = -Math.PI * .1;
+    this.scene.add(this.rightCard);
+    csd = {
+      rotY: this.leftCard.rotation.y
+    };
+    fsd = {
+      rotY: -Math.PI * 0.8
+    };
+    leftCardTween = new TWEEN.Tween(csd).to(fsd, 10000).onUpdate((function(_this) {
+      return function() {
+        return _this.leftCard.rotation.y = csd.rotY;
+      };
+    })(this)).start();
+    leftCardTween.onComplete((function(_this) {
+      return function() {
+        return _this.video.play();
+      };
+    })(this));
   }
 
-  Card.prototype.flicker = function() {
-    var time;
-    this.ctx.fillStyle = 'white';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.fillStyle = 'red';
-    time = this.clock.getElapsedTime();
-    this.firePos.x += this.perlin.simplex2(this.firePos.x, time) * 10;
-    this.firePos.y += this.perlin.simplex2(this.firePos.y, time) * 10;
-    this.ctx.fillRect(this.firePos.x, this.firePos.y, this.flameSize, this.flameSize);
-    this.canvasTexture.needsUpdate = true;
-    return setTimeout((function(_this) {
-      return function() {
-        return _this.flicker();
-      };
-    })(this), 400);
-  };
-
   Card.prototype.update = function(time) {
-    if (this.cardMesh.geometry.vertices[0].z < 0) {
-
-    } else {
-      this.cardMesh.geometry.vertices[0].x = this.radius * Math.cos(time);
-      this.cardMesh.geometry.vertices[0].z = this.radius * Math.sin(time);
-      this.cardMesh.geometry.vertices[3].x = this.radius * Math.cos(time);
-      this.cardMesh.geometry.vertices[3].z = this.radius * Math.sin(time);
-      this.cardMesh.geometry.verticesNeedUpdate = true;
-      this.cardMesh.geometry.computeFaceNormals();
-      return this.cardMesh.geometry.normalsNeedUpdate = true;
+    this.leftCard.geometry.verticesNeedUpdate = true;
+    this.leftCard.geometry.computeFaceNormals();
+    this.leftCard.geometry.normalsNeedUpdate = true;
+    if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+      return this.videoTexture.needsUpdate = true;
     }
   };
 
@@ -37415,7 +38206,55 @@ Card = (function() {
 module.exports = Card;
 
 
-},{"Perlin":8,"three":2,"underscore":1}],5:[function(require,module,exports){
+},{"Perlin":10,"three":2,"tween.js":3,"underscore":1}],6:[function(require,module,exports){
+var Perlin, Photos, THREE, _;
+
+THREE = require('three');
+
+_ = require('underscore');
+
+Perlin = require('Perlin');
+
+Photos = (function() {
+  function Photos(scene) {
+    var i, image, loadImage, texture, _i, _ref;
+    this.scene = scene;
+    this.numPhotos = 20;
+    this.photos = [];
+    for (i = _i = 1, _ref = this.numPhotos; 1 <= _ref ? _i <= _ref : _i >= _ref; i = 1 <= _ref ? ++_i : --_i) {
+      image = document.createElement('img');
+      image.src = 'images/photos/' + i + '.jpg';
+      texture = new THREE.Texture(image);
+      loadImage = (function(_this) {
+        return function(image, texture, i) {
+          return image.addEventListener('load', function(event) {
+            var mat, photo;
+            texture.needsUpdate = true;
+            mat = new THREE.MeshBasicMaterial({
+              map: texture
+            });
+            photo = new THREE.Mesh(new THREE.PlaneGeometry(image.width, image.height), mat);
+            photo.scale.multiplyScalar(0.01);
+            photo.position.z += 10;
+            photo.position.x = i * 30;
+            return _this.scene.add(photo);
+          });
+        };
+      })(this);
+      loadImage(image, texture, i);
+    }
+  }
+
+  Photos.prototype.update = function(time) {};
+
+  return Photos;
+
+})();
+
+module.exports = Photos;
+
+
+},{"Perlin":10,"three":2,"underscore":1}],7:[function(require,module,exports){
 //@author: cabbibo
 window.AudioController = function(){
 
@@ -37506,7 +38345,7 @@ module.exports = AudioController
 
 
 
-},{}],6:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
   //author: @cabbibo
   window.AudioTexture = function(audio) {
     this.analyser = audio.analyzer;
@@ -37542,7 +38381,6 @@ module.exports = AudioController
   AudioTexture.prototype.processAudio = function() {
 
     var audioTextureData = new Float32Array(this.width * 4);
-    //console.log( this.analyser.array[20]);
     for (var i = 0; i < this.width; i += 4) {
 
       audioTextureData[i + 0] = this.analyser.array[(i / 4) + 0] / 256;
@@ -37558,7 +38396,7 @@ module.exports = AudioController
   }
 
 module.exports = AudioTexture;
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 THREE = require('three')
 /**
  * @author qiao / https://github.com/qiao
@@ -38202,7 +39040,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
 
 
-},{"three":2}],8:[function(require,module,exports){
+},{"three":2}],10:[function(require,module,exports){
 /*
  * A speed-improved perlin and simplex noise algorithms for 2D.
  *
@@ -38566,7 +39404,7 @@ window.Perlin = function(){
   };
 }
 module.exports = Perlin
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 
 STREAMS = [];
 
@@ -38641,4 +39479,4 @@ Stream.prototype.update = function(){
 
 module.exports = Stream;
 
-},{}]},{},[3])
+},{}]},{},[4])
