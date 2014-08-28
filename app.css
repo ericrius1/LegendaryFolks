@@ -1,0 +1,13 @@
+body {
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  -moz-transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  color: #555555;
+  font-family: sans-serif; }
+
+body {
+  margin: 0; }
+
+/*# sourceMappingURL=app.css.map */
