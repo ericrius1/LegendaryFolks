@@ -38189,7 +38189,18 @@ Card = (function() {
       return function() {
         _this.video.play();
         return _this.video.onended = function() {
-          return console.log('yar');
+          var camTween;
+          console.log('yar');
+          csd = {
+            posZ: _this.camera.position.z
+          };
+          fsd = {
+            posZ: _this.camera.position.z + 100
+          };
+          return camTween = new TWEEN.Tween(csd).to(fsd, 5000).onUpdate(function() {
+            console.log(fsd.posZ);
+            return _this.camera.position.z = csd.posZ;
+          }).start();
         };
       };
     })(this));
