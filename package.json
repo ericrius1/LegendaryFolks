@@ -10,6 +10,8 @@
     "underscore": "backbone/node_modules/underscore",
     "plugin": "./src/javascript/vendor/jquery-plugin.js",
     "OrbitControls": "./src/javascript/vendor/OrbitControls.js",
+    "ExplodeModifier": "./src/javascript/vendor/ExplodeModifier.js",
+    "TessellateModifier": "./src/javascript/vendor/TessellateModifier.js",
     "Perlin": "./src/javascript/vendor/Perlin.js",
     "Stream": "./src/javascript/vendor/Stream.js",
     "AudioController": "./src/javascript/vendor/AudioController.js",

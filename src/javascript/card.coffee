@@ -2,6 +2,10 @@ THREE = require 'three'
 _ = require 'underscore'
 Perlin = require 'Perlin'
 TWEEN = require 'tween.js'
+require 'TessellateModifier'
+require 'ExplodeModifier'
+
+
 
 #Have the camera trained on a cheesy painting so its paused when the card opens, then pan away and focus on me and rel doing 
 #something gooffy and singing happy birthday
@@ -9,6 +13,7 @@ TWEEN = require 'tween.js'
 class Card
   constructor: (@scene, @clock, @camera)->
     @cardOpenTime = 2000
+    @rf = THREE.Math.randFloat
     @resolution = new THREE.Vector2(17,22)
     geo = new THREE.PlaneGeometry(@resolution.x, @resolution.y)
 
@@ -79,6 +84,8 @@ class Card
     # @rightCard.position.x -=10
     @scene.add @rightCard
 
+    @explodeCard()
+
     csd = 
       rotY: @leftCard.rotation.y
     fsd = 
@@ -115,13 +122,39 @@ class Card
             @rightCard.rotation.y = csd.rotY
           ).start()
         rightCardTween.onComplete(()=>
-          @explodeCard()
+          # @explodeCard()
         )
     )
 
   explodeCard: ->
-    console.log 'yar'
 
+    tesselateModifier = new THREE.TessellateModifier(4)
+    explodeModifier = new THREE.ExplodeModifier()
+
+    @leftCard.geometry.dynamic = true
+    tesselateModifier.modify(@leftCard.geometry)
+    explodeModifier.modify(@leftCard.geometry)
+
+    @rightCard.geometry.dynamic = true
+    tesselateModifier.modify(@rightCard.geometry)
+    explodeModifier.modify(@rightCard.geometry)
+    v = 0
+    for f in [0...@rightCard.geometry.faces.length]
+      velocity = new THREE.Vector3 @rf(-1, 1), @rf(-1, 1), @rf(-1,1)
+      for i in [0...3]
+        @rightCard.geometry.vertices[v].velocity = velocity
+        v+=1
+
+    explodeHelper = =>
+      for i in [0...@rightCard.geometry.vertices.length]
+        vertex = @rightCard.geometry.vertices[i]
+        console.log vertex.velocity
+        vertex.add vertex.velocity
+      setTimeout(=>
+        explodeHelper()
+      , 1000)
+
+    explodeHelper()
   update: (time)->
       
     @leftCard.geometry.verticesNeedUpdate = true
@@ -131,6 +164,7 @@ class Card
 
     if @video.readyState is @video.HAVE_ENOUGH_DATA
       @videoTexture.needsUpdate = true
+    
 
 
 module.exports = Card

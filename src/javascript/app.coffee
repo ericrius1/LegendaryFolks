@@ -1,5 +1,5 @@
 THREE = require 'three'
-controls = require 'OrbitControls'
+require 'OrbitControls'
 Card = require './card'
 Photos = require './photos'
 AudioController = require './vendor/AudioController'

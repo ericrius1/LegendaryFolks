@@ -38035,7 +38035,7 @@ var AudioController, AudioTexture, Card, HEIGHT, Photos, Stream, THREE, TWEEN, W
 
 THREE = require('three');
 
-controls = require('OrbitControls');
+require('OrbitControls');
 
 Card = require('./card');
 
@@ -38103,7 +38103,7 @@ onWindowResize = function() {
 animate();
 
 
-},{"./card":5,"./photos":6,"./vendor/AudioController":7,"./vendor/AudioTexture":8,"./vendor/Stream":11,"OrbitControls":9,"three":2,"tween.js":3}],5:[function(require,module,exports){
+},{"./card":5,"./photos":6,"./vendor/AudioController":7,"./vendor/AudioTexture":8,"./vendor/Stream":12,"OrbitControls":10,"three":2,"tween.js":3}],5:[function(require,module,exports){
 var Card, Perlin, THREE, TWEEN, _;
 
 THREE = require('three');
@@ -38114,6 +38114,10 @@ Perlin = require('Perlin');
 
 TWEEN = require('tween.js');
 
+require('TessellateModifier');
+
+require('ExplodeModifier');
+
 Card = (function() {
   function Card(scene, clock, camera) {
     var csd, fsd, geo, leftCardTween, leftOuterImage, leftOuterTexture, leftTextures, rightOuterImage, rightOuterTexture, rightTextures;
@@ -38121,6 +38125,7 @@ Card = (function() {
     this.clock = clock;
     this.camera = camera;
     this.cardOpenTime = 2000;
+    this.rf = THREE.Math.randFloat;
     this.resolution = new THREE.Vector2(17, 22);
     geo = new THREE.PlaneGeometry(this.resolution.x, this.resolution.y);
     geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1);
@@ -38180,6 +38185,7 @@ Card = (function() {
     this.rightCard = new THREE.Mesh(geo, this.rightMat);
     this.rightCard.rotation.y = -Math.PI * .1;
     this.scene.add(this.rightCard);
+    this.explodeCard();
     csd = {
       rotY: this.leftCard.rotation.y
     };
@@ -38211,16 +38217,44 @@ Card = (function() {
           rightCardTween = new TWEEN.Tween(csd).to(fsd, 2000).onUpdate(function() {
             return _this.rightCard.rotation.y = csd.rotY;
           }).start();
-          return rightCardTween.onComplete(function() {
-            return _this.explodeCard();
-          });
+          return rightCardTween.onComplete(function() {});
         };
       };
     })(this));
   }
 
   Card.prototype.explodeCard = function() {
-    return console.log('yar');
+    var explodeHelper, explodeModifier, f, i, tesselateModifier, v, velocity, _i, _j, _ref;
+    tesselateModifier = new THREE.TessellateModifier(4);
+    explodeModifier = new THREE.ExplodeModifier();
+    this.leftCard.geometry.dynamic = true;
+    tesselateModifier.modify(this.leftCard.geometry);
+    explodeModifier.modify(this.leftCard.geometry);
+    this.rightCard.geometry.dynamic = true;
+    tesselateModifier.modify(this.rightCard.geometry);
+    explodeModifier.modify(this.rightCard.geometry);
+    v = 0;
+    for (f = _i = 0, _ref = this.rightCard.geometry.faces.length; 0 <= _ref ? _i < _ref : _i > _ref; f = 0 <= _ref ? ++_i : --_i) {
+      velocity = new THREE.Vector3(this.rf(-1, 1), this.rf(-1, 1), this.rf(-1, 1));
+      for (i = _j = 0; _j < 3; i = ++_j) {
+        this.rightCard.geometry.vertices[v].velocity = velocity;
+        v += 1;
+      }
+    }
+    explodeHelper = (function(_this) {
+      return function() {
+        var vertex, _k, _ref1;
+        for (i = _k = 0, _ref1 = _this.rightCard.geometry.vertices.length; 0 <= _ref1 ? _k < _ref1 : _k > _ref1; i = 0 <= _ref1 ? ++_k : --_k) {
+          vertex = _this.rightCard.geometry.vertices[i];
+          console.log(vertex.velocity);
+          vertex.add(vertex.velocity);
+        }
+        return setTimeout(function() {
+          return explodeHelper();
+        }, 1000);
+      };
+    })(this);
+    return explodeHelper();
   };
 
   Card.prototype.update = function(time) {
@@ -38240,7 +38274,7 @@ Card = (function() {
 module.exports = Card;
 
 
-},{"Perlin":10,"three":2,"tween.js":3,"underscore":1}],6:[function(require,module,exports){
+},{"ExplodeModifier":9,"Perlin":11,"TessellateModifier":13,"three":2,"tween.js":3,"underscore":1}],6:[function(require,module,exports){
 var Perlin, Photos, THREE, _;
 
 THREE = require('three');
@@ -38287,7 +38321,7 @@ Photos = (function() {
 module.exports = Photos;
 
 
-},{"Perlin":10,"three":2,"underscore":1}],7:[function(require,module,exports){
+},{"Perlin":11,"three":2,"underscore":1}],7:[function(require,module,exports){
 //@author: cabbibo
 window.AudioController = function(){
 
@@ -38430,6 +38464,54 @@ module.exports = AudioController
 
 module.exports = AudioTexture;
 },{}],9:[function(require,module,exports){
+/**
+ * Make all faces use unique vertices
+ * so that each face can be separated from others
+ *
+ * @author alteredq / http://alteredqualia.com/
+ */
+
+THREE = require('three')
+
+THREE.ExplodeModifier = function () {
+
+};
+
+THREE.ExplodeModifier.prototype.modify = function ( geometry ) {
+
+  var vertices = [];
+
+  for ( var i = 0, il = geometry.faces.length; i < il; i ++ ) {
+
+    var n = vertices.length;
+
+    var face = geometry.faces[ i ];
+
+    var a = face.a;
+    var b = face.b;
+    var c = face.c;
+
+    var va = geometry.vertices[ a ];
+    var vb = geometry.vertices[ b ];
+    var vc = geometry.vertices[ c ];
+
+    vertices.push( va.clone() );
+    vertices.push( vb.clone() );
+    vertices.push( vc.clone() );
+
+    face.a = n;
+    face.b = n + 1;
+    face.c = n + 2;
+
+  }
+
+  geometry.vertices = vertices;
+  delete geometry.__tmpVertices;
+
+}
+
+
+},{"three":2}],10:[function(require,module,exports){
 THREE = require('three')
 /**
  * @author qiao / https://github.com/qiao
@@ -39073,7 +39155,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
 
 
-},{"three":2}],10:[function(require,module,exports){
+},{"three":2}],11:[function(require,module,exports){
 /*
  * A speed-improved perlin and simplex noise algorithms for 2D.
  *
@@ -39437,7 +39519,7 @@ window.Perlin = function(){
   };
 }
 module.exports = Perlin
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 
 STREAMS = [];
 
@@ -39512,4 +39594,449 @@ Stream.prototype.update = function(){
 
 module.exports = Stream;
 
-},{}]},{},[4])
+},{}],13:[function(require,module,exports){
+/**
+ * Break faces with edges longer than maxEdgeLength
+ * - not recursive
+ *
+ * @author alteredq / http://alteredqualia.com/
+ */
+
+THREE = require('three');
+
+THREE.TessellateModifier = function ( maxEdgeLength ) {
+
+  this.maxEdgeLength = maxEdgeLength;
+
+};
+
+THREE.TessellateModifier.prototype.modify = function ( geometry ) {
+
+  var i, il, face,
+  a, b, c, d,
+  va, vb, vc, vd,
+  dab, dbc, dac, dcd, dad,
+  m, m1, m2,
+  vm, vm1, vm2,
+  vnm, vnm1, vnm2,
+  vcm, vcm1, vcm2,
+  triA, triB,
+  quadA, quadB,
+  edge;
+
+  var faces = [];
+  var faceVertexUvs = [];
+  var maxEdgeLength = this.maxEdgeLength;
+
+  for ( i = 0, il = geometry.faceVertexUvs.length; i < il; i ++ ) {
+
+    faceVertexUvs[ i ] = [];
+
+  }
+
+  for ( i = 0, il = geometry.faces.length; i < il; i ++ ) {
+
+    face = geometry.faces[ i ];
+
+    if ( face instanceof THREE.Face3 ) {
+
+      a = face.a;
+      b = face.b;
+      c = face.c;
+
+      va = geometry.vertices[ a ];
+      vb = geometry.vertices[ b ];
+      vc = geometry.vertices[ c ];
+
+      dab = va.distanceTo( vb );
+      dbc = vb.distanceTo( vc );
+      dac = va.distanceTo( vc );
+
+      if ( dab > maxEdgeLength || dbc > maxEdgeLength || dac > maxEdgeLength ) {
+
+        m = geometry.vertices.length;
+
+        triA = face.clone();
+        triB = face.clone();
+
+        if ( dab >= dbc && dab >= dac ) {
+
+          vm = va.clone();
+          vm.lerp( vb, 0.5 );
+
+          triA.a = a;
+          triA.b = m;
+          triA.c = c;
+
+          triB.a = m;
+          triB.b = b;
+          triB.c = c;
+
+          if ( face.vertexNormals.length === 3 ) {
+
+            vnm = face.vertexNormals[ 0 ].clone();
+            vnm.lerp( face.vertexNormals[ 1 ], 0.5 );
+
+            triA.vertexNormals[ 1 ].copy( vnm );
+            triB.vertexNormals[ 0 ].copy( vnm );
+
+          }
+
+          if ( face.vertexColors.length === 3 ) {
+
+            vcm = face.vertexColors[ 0 ].clone();
+            vcm.lerp( face.vertexColors[ 1 ], 0.5 );
+
+            triA.vertexColors[ 1 ].copy( vcm );
+            triB.vertexColors[ 0 ].copy( vcm );
+
+          }
+
+          edge = 0;
+
+        } else if ( dbc >= dab && dbc >= dac ) {
+
+          vm = vb.clone();
+          vm.lerp( vc, 0.5 );
+
+          triA.a = a;
+          triA.b = b;
+          triA.c = m;
+
+          triB.a = m;
+          triB.b = c;
+          triB.c = a;
+
+          if ( face.vertexNormals.length === 3 ) {
+
+            vnm = face.vertexNormals[ 1 ].clone();
+            vnm.lerp( face.vertexNormals[ 2 ], 0.5 );
+
+            triA.vertexNormals[ 2 ].copy( vnm );
+
+            triB.vertexNormals[ 0 ].copy( vnm );
+            triB.vertexNormals[ 1 ].copy( face.vertexNormals[ 2 ] );
+            triB.vertexNormals[ 2 ].copy( face.vertexNormals[ 0 ] );
+
+          }
+
+          if ( face.vertexColors.length === 3 ) {
+
+            vcm = face.vertexColors[ 1 ].clone();
+            vcm.lerp( face.vertexColors[ 2 ], 0.5 );
+
+            triA.vertexColors[ 2 ].copy( vcm );
+
+            triB.vertexColors[ 0 ].copy( vcm );
+            triB.vertexColors[ 1 ].copy( face.vertexColors[ 2 ] );
+            triB.vertexColors[ 2 ].copy( face.vertexColors[ 0 ] );
+
+          }
+
+          edge = 1;
+
+        } else {
+
+          vm = va.clone();
+          vm.lerp( vc, 0.5 );
+
+          triA.a = a;
+          triA.b = b;
+          triA.c = m;
+
+          triB.a = m;
+          triB.b = b;
+          triB.c = c;
+
+          if ( face.vertexNormals.length === 3 ) {
+
+            vnm = face.vertexNormals[ 0 ].clone();
+            vnm.lerp( face.vertexNormals[ 2 ], 0.5 );
+
+            triA.vertexNormals[ 2 ].copy( vnm );
+            triB.vertexNormals[ 0 ].copy( vnm );
+
+          }
+
+          if ( face.vertexColors.length === 3 ) {
+
+            vcm = face.vertexColors[ 0 ].clone();
+            vcm.lerp( face.vertexColors[ 2 ], 0.5 );
+
+            triA.vertexColors[ 2 ].copy( vcm );
+            triB.vertexColors[ 0 ].copy( vcm );
+
+          }
+
+          edge = 2;
+
+        }
+
+        faces.push( triA, triB );
+        geometry.vertices.push( vm );
+
+        var j, jl, uvs, uvA, uvB, uvC, uvM, uvsTriA, uvsTriB;
+
+        for ( j = 0, jl = geometry.faceVertexUvs.length; j < jl; j ++ ) {
+
+          if ( geometry.faceVertexUvs[ j ].length ) {
+
+            uvs = geometry.faceVertexUvs[ j ][ i ];
+
+            uvA = uvs[ 0 ];
+            uvB = uvs[ 1 ];
+            uvC = uvs[ 2 ];
+
+            // AB
+
+            if ( edge === 0 ) {
+
+              uvM = uvA.clone();
+              uvM.lerp( uvB, 0.5 );
+
+              uvsTriA = [ uvA.clone(), uvM.clone(), uvC.clone() ];
+              uvsTriB = [ uvM.clone(), uvB.clone(), uvC.clone() ];
+
+            // BC
+
+            } else if ( edge === 1 ) {
+
+              uvM = uvB.clone();
+              uvM.lerp( uvC, 0.5 );
+
+              uvsTriA = [ uvA.clone(), uvB.clone(), uvM.clone() ];
+              uvsTriB = [ uvM.clone(), uvC.clone(), uvA.clone() ];
+
+            // AC
+
+            } else {
+
+              uvM = uvA.clone();
+              uvM.lerp( uvC, 0.5 );
+
+              uvsTriA = [ uvA.clone(), uvB.clone(), uvM.clone() ];
+              uvsTriB = [ uvM.clone(), uvB.clone(), uvC.clone() ];
+
+            }
+
+            faceVertexUvs[ j ].push( uvsTriA, uvsTriB );
+
+          }
+
+        }
+
+      } else {
+
+        faces.push( face );
+
+        for ( j = 0, jl = geometry.faceVertexUvs.length; j < jl; j ++ ) {
+
+          faceVertexUvs[ j ].push( geometry.faceVertexUvs[ j ][ i ] );
+
+        }
+
+      }
+
+    } else {
+
+      a = face.a;
+      b = face.b;
+      c = face.c;
+      d = face.d;
+
+      va = geometry.vertices[ a ];
+      vb = geometry.vertices[ b ];
+      vc = geometry.vertices[ c ];
+      vd = geometry.vertices[ d ];
+
+      dab = va.distanceTo( vb );
+      dbc = vb.distanceTo( vc );
+      dcd = vc.distanceTo( vd );
+      dad = va.distanceTo( vd );
+
+      if ( dab > maxEdgeLength || dbc > maxEdgeLength || dcd > maxEdgeLength || dad > maxEdgeLength ) {
+
+        m1 = geometry.vertices.length;
+        m2 = geometry.vertices.length + 1;
+
+        quadA = face.clone();
+        quadB = face.clone();
+
+        if ( ( dab >= dbc && dab >= dcd && dab >= dad ) || ( dcd >= dbc && dcd >= dab && dcd >= dad ) ) {
+
+          vm1 = va.clone();
+          vm1.lerp( vb, 0.5 );
+
+          vm2 = vc.clone();
+          vm2.lerp( vd, 0.5 );
+
+          quadA.a = a;
+          quadA.b = m1;
+          quadA.c = m2;
+          quadA.d = d;
+
+          quadB.a = m1;
+          quadB.b = b;
+          quadB.c = c;
+          quadB.d = m2;
+
+          if ( face.vertexNormals.length === 4 ) {
+
+            vnm1 = face.vertexNormals[ 0 ].clone();
+            vnm1.lerp( face.vertexNormals[ 1 ], 0.5 );
+
+            vnm2 = face.vertexNormals[ 2 ].clone();
+            vnm2.lerp( face.vertexNormals[ 3 ], 0.5 );
+
+            quadA.vertexNormals[ 1 ].copy( vnm1 );
+            quadA.vertexNormals[ 2 ].copy( vnm2 );
+
+            quadB.vertexNormals[ 0 ].copy( vnm1 );
+            quadB.vertexNormals[ 3 ].copy( vnm2 );
+
+          }
+
+          if ( face.vertexColors.length === 4 ) {
+
+            vcm1 = face.vertexColors[ 0 ].clone();
+            vcm1.lerp( face.vertexColors[ 1 ], 0.5 );
+
+            vcm2 = face.vertexColors[ 2 ].clone();
+            vcm2.lerp( face.vertexColors[ 3 ], 0.5 );
+
+            quadA.vertexColors[ 1 ].copy( vcm1 );
+            quadA.vertexColors[ 2 ].copy( vcm2 );
+
+            quadB.vertexColors[ 0 ].copy( vcm1 );
+            quadB.vertexColors[ 3 ].copy( vcm2 );
+
+          }
+
+          edge = 0;
+
+        } else {
+
+          vm1 = vb.clone();
+          vm1.lerp( vc, 0.5 );
+
+          vm2 = vd.clone();
+          vm2.lerp( va, 0.5 );
+
+          quadA.a = a;
+          quadA.b = b;
+          quadA.c = m1;
+          quadA.d = m2;
+
+          quadB.a = m2;
+          quadB.b = m1;
+          quadB.c = c;
+          quadB.d = d;
+
+          if ( face.vertexNormals.length === 4 ) {
+
+            vnm1 = face.vertexNormals[ 1 ].clone();
+            vnm1.lerp( face.vertexNormals[ 2 ], 0.5 );
+
+            vnm2 = face.vertexNormals[ 3 ].clone();
+            vnm2.lerp( face.vertexNormals[ 0 ], 0.5 );
+
+            quadA.vertexNormals[ 2 ].copy( vnm1 );
+            quadA.vertexNormals[ 3 ].copy( vnm2 );
+
+            quadB.vertexNormals[ 0 ].copy( vnm2 );
+            quadB.vertexNormals[ 1 ].copy( vnm1 );
+
+          }
+
+          if ( face.vertexColors.length === 4 ) {
+
+            vcm1 = face.vertexColors[ 1 ].clone();
+            vcm1.lerp( face.vertexColors[ 2 ], 0.5 );
+
+            vcm2 = face.vertexColors[ 3 ].clone();
+            vcm2.lerp( face.vertexColors[ 0 ], 0.5 );
+
+            quadA.vertexColors[ 2 ].copy( vcm1 );
+            quadA.vertexColors[ 3 ].copy( vcm2 );
+
+            quadB.vertexColors[ 0 ].copy( vcm2 );
+            quadB.vertexColors[ 1 ].copy( vcm1 );
+
+          }
+
+          edge = 1;
+
+        }
+
+        faces.push( quadA, quadB );
+        geometry.vertices.push( vm1, vm2 );
+
+        var j, jl, uvs, uvA, uvB, uvC, uvD, uvM1, uvM2, uvsQuadA, uvsQuadB;
+
+        for ( j = 0, jl = geometry.faceVertexUvs.length; j < jl; j ++ ) {
+
+          if ( geometry.faceVertexUvs[ j ].length ) {
+
+            uvs = geometry.faceVertexUvs[ j ][ i ];
+
+            uvA = uvs[ 0 ];
+            uvB = uvs[ 1 ];
+            uvC = uvs[ 2 ];
+            uvD = uvs[ 3 ];
+
+            // AB + CD
+
+            if ( edge === 0 ) {
+
+              uvM1 = uvA.clone();
+              uvM1.lerp( uvB, 0.5 );
+
+              uvM2 = uvC.clone();
+              uvM2.lerp( uvD, 0.5 );
+
+              uvsQuadA = [ uvA.clone(), uvM1.clone(), uvM2.clone(), uvD.clone() ];
+              uvsQuadB = [ uvM1.clone(), uvB.clone(), uvC.clone(), uvM2.clone() ];
+
+            // BC + AD
+
+            } else {
+
+              uvM1 = uvB.clone();
+              uvM1.lerp( uvC, 0.5 );
+
+              uvM2 = uvD.clone();
+              uvM2.lerp( uvA, 0.5 );
+
+              uvsQuadA = [ uvA.clone(), uvB.clone(), uvM1.clone(), uvM2.clone() ];
+              uvsQuadB = [ uvM2.clone(), uvM1.clone(), uvC.clone(), uvD.clone() ];
+
+            }
+
+            faceVertexUvs[ j ].push( uvsQuadA, uvsQuadB );
+
+          }
+
+        }
+
+      } else {
+
+        faces.push( face );
+
+        for ( j = 0, jl = geometry.faceVertexUvs.length; j < jl; j ++ ) {
+
+          faceVertexUvs[ j ].push( geometry.faceVertexUvs[ j ][ i ] );
+
+        }
+
+      }
+
+    }
+
+  }
+
+  geometry.faces = faces;
+  geometry.faceVertexUvs = faceVertexUvs;
+
+}
+
+},{"three":2}]},{},[4])
