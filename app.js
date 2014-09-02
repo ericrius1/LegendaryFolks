@@ -38185,7 +38185,7 @@ Card = (function() {
     this.rightCard = new THREE.Mesh(geo, this.rightMat);
     this.rightCard.rotation.y = -Math.PI * .1;
     this.scene.add(this.rightCard);
-    this.explodeCard();
+    this.tesselateCard();
     csd = {
       rotY: this.leftCard.rotation.y
     };
@@ -38217,14 +38217,16 @@ Card = (function() {
           rightCardTween = new TWEEN.Tween(csd).to(fsd, 2000).onUpdate(function() {
             return _this.rightCard.rotation.y = csd.rotY;
           }).start();
-          return rightCardTween.onComplete(function() {});
+          return rightCardTween.onComplete(function() {
+            return _this.explodeCard();
+          });
         };
       };
     })(this));
   }
 
-  Card.prototype.explodeCard = function() {
-    var explodeHelper, explodeModifier, f, i, tesselateModifier, v, velocity, _i, _j, _ref;
+  Card.prototype.tesselateCard = function() {
+    var explodeModifier, f, i, tesselateModifier, v, velocity, _i, _ref, _results;
     tesselateModifier = new THREE.TessellateModifier(4);
     explodeModifier = new THREE.ExplodeModifier();
     this.leftCard.geometry.dynamic = true;
@@ -38234,27 +38236,33 @@ Card = (function() {
     tesselateModifier.modify(this.rightCard.geometry);
     explodeModifier.modify(this.rightCard.geometry);
     v = 0;
+    _results = [];
     for (f = _i = 0, _ref = this.rightCard.geometry.faces.length; 0 <= _ref ? _i < _ref : _i > _ref; f = 0 <= _ref ? ++_i : --_i) {
       velocity = new THREE.Vector3(this.rf(-1, 1), this.rf(-1, 1), this.rf(-1, 1));
-      for (i = _j = 0; _j < 3; i = ++_j) {
-        this.rightCard.geometry.vertices[v].velocity = velocity;
-        v += 1;
-      }
-    }
-    explodeHelper = (function(_this) {
-      return function() {
-        var vertex, _k, _ref1;
-        for (i = _k = 0, _ref1 = _this.rightCard.geometry.vertices.length; 0 <= _ref1 ? _k < _ref1 : _k > _ref1; i = 0 <= _ref1 ? ++_k : --_k) {
-          vertex = _this.rightCard.geometry.vertices[i];
-          console.log(vertex.velocity);
-          vertex.add(vertex.velocity);
+      _results.push((function() {
+        var _j, _results1;
+        _results1 = [];
+        for (i = _j = 0; _j < 3; i = ++_j) {
+          this.rightCard.geometry.vertices[v].velocity = velocity;
+          _results1.push(v += 1);
         }
-        return setTimeout(function() {
-          return explodeHelper();
-        }, 1000);
+        return _results1;
+      }).call(this));
+    }
+    return _results;
+  };
+
+  Card.prototype.explodeCard = function() {
+    var i, vertex, _i, _ref;
+    for (i = _i = 0, _ref = this.rightCard.geometry.vertices.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+      vertex = this.rightCard.geometry.vertices[i];
+      vertex.add(vertex.velocity);
+    }
+    return setTimeout((function(_this) {
+      return function() {
+        return _this.explodeCard();
       };
-    })(this);
-    return explodeHelper();
+    })(this), 16);
   };
 
   Card.prototype.update = function(time) {
