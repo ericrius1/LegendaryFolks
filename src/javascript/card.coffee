@@ -84,7 +84,8 @@ class Card
     # @rightCard.position.x -=10
     @scene.add @rightCard
 
-    @explodeCard()
+    @tesselateCard()
+    # @explodeCard()
 
     csd = 
       rotY: @leftCard.rotation.y
@@ -122,12 +123,11 @@ class Card
             @rightCard.rotation.y = csd.rotY
           ).start()
         rightCardTween.onComplete(()=>
-          # @explodeCard()
+          @explodeCard()
         )
     )
 
-  explodeCard: ->
-
+  tesselateCard: ->
     tesselateModifier = new THREE.TessellateModifier(4)
     explodeModifier = new THREE.ExplodeModifier()
 
@@ -138,6 +138,7 @@ class Card
     @rightCard.geometry.dynamic = true
     tesselateModifier.modify(@rightCard.geometry)
     explodeModifier.modify(@rightCard.geometry)
+    
     v = 0
     for f in [0...@rightCard.geometry.faces.length]
       velocity = new THREE.Vector3 @rf(-1, 1), @rf(-1, 1), @rf(-1,1)
@@ -145,16 +146,14 @@ class Card
         @rightCard.geometry.vertices[v].velocity = velocity
         v+=1
 
-    explodeHelper = =>
-      for i in [0...@rightCard.geometry.vertices.length]
-        vertex = @rightCard.geometry.vertices[i]
-        console.log vertex.velocity
-        vertex.add vertex.velocity
-      setTimeout(=>
-        explodeHelper()
-      , 1000)
+  explodeCard: ->
+    for i in [0...@rightCard.geometry.vertices.length]
+      vertex = @rightCard.geometry.vertices[i]
+      vertex.add vertex.velocity
+    setTimeout(=>
+      @explodeCard()
+    , 16)
 
-    explodeHelper()
   update: (time)->
       
     @leftCard.geometry.verticesNeedUpdate = true
