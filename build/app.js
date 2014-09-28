@@ -38202,7 +38202,7 @@ Card = (function() {
       return function() {
         return _this.leftCard.rotation.y = csd.rotY;
       };
-    })(this)).delay(3000).start();
+    })(this)).delay(5000).start();
     leftCardTween.onComplete((function(_this) {
       return function() {
         _this.video.play();
@@ -38225,8 +38225,8 @@ Card = (function() {
             return _this.rightCard.rotation.y = csd.rotY;
           }).start();
           return rightCardTween.onComplete(function() {
+            _this.photos.beginAnimating();
             return setTimeout(function() {
-              _this.photos.beginAnimating();
               return _this.explodingInProgress = true;
             }, 2000);
           });
@@ -38327,7 +38327,7 @@ Photos = (function() {
             });
             photo = new THREE.Mesh(new THREE.PlaneGeometry(image.width, image.height), mat);
             photo.scale.multiplyScalar(0.01);
-            photo.position.set(_.random(-20, 20), 20 + (i * 7) + rf(-10, 10), rf(0, 20));
+            photo.position.set(_.random(-20, 20), 10 + (i * 7) + rf(-10, 10), rf(0, 20));
             photo.velocity = rf(.03, 0.05);
             _this.scene.add(photo);
             return _this.photos.push(photo);

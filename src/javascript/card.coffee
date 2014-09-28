@@ -96,7 +96,7 @@ class Card
       onUpdate(()=>
         @leftCard.rotation.y = csd.rotY
       ).
-      delay(3000).start()
+      delay(5000).start()
     leftCardTween.onComplete(()=>
       @video.play()
       @video.onended = =>
@@ -118,8 +118,8 @@ class Card
             @rightCard.rotation.y = csd.rotY
           ).start()
         rightCardTween.onComplete(()=>
+          @photos.beginAnimating()
           setTimeout =>
-            @photos.beginAnimating()
             @explodingInProgress = true
           , 2000
         )
