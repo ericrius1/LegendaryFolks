@@ -38327,7 +38327,7 @@ Photos = (function() {
             });
             photo = new THREE.Mesh(new THREE.PlaneGeometry(image.width, image.height), mat);
             photo.scale.multiplyScalar(0.01);
-            photo.position.set(_.random(-20, 20), 10 + (i * 7) + rf(-10, 10), rf(0, 20));
+            photo.position.set(_.random(-20, 20), 10 + (i * 7), rf(0, 20));
             photo.velocity = rf(.03, 0.05);
             _this.scene.add(photo);
             return _this.photos.push(photo);
