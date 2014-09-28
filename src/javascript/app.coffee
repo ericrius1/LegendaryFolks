@@ -27,7 +27,7 @@ controls = new THREE.OrbitControls(camera)
 # scene.add pointLight
 
 audioController = new AudioController()
-stream = new Stream('/videos/fragments.mp3', audioController)
+stream = new Stream('videos/fragments.mp3', audioController)
 
 
 photos = new Photos(scene)
