@@ -11,11 +11,13 @@ require 'ExplodeModifier'
 #something gooffy and singing happy birthday
 
 class Card
-  constructor: (@scene, @clock, @camera)->
-    @cardOpenTime = 2000
+  constructor: (@scene, @clock, @camera, @photos, @stream)->
+    @explodingInProgress = false
+    @cardOpenTime = 5000
     @rf = THREE.Math.randFloat
     @resolution = new THREE.Vector2(17,22)
     geo = new THREE.PlaneGeometry(@resolution.x, @resolution.y)
+    @accelRange = 0.01
 
     geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1)
 
@@ -73,7 +75,6 @@ class Card
 
     @leftCard = new THREE.Mesh(geo, @leftMat)
     @leftCard.rotation.y = -Math.PI * .1
-    # @leftCard.position.x -=10
     @scene.add @leftCard
 
 
@@ -81,11 +82,9 @@ class Card
 
     @rightCard = new THREE.Mesh(geo, @rightMat)
     @rightCard.rotation.y = -Math.PI * .1
-    # @rightCard.position.x -=10
     @scene.add @rightCard
 
     @tesselateCard()
-    # @explodeCard()
 
     csd = 
       rotY: @leftCard.rotation.y
@@ -96,39 +95,37 @@ class Card
       to(fsd, @cardOpenTime).
       onUpdate(()=>
         @leftCard.rotation.y = csd.rotY
-      ).start()
+      ).
+      delay(3000).start()
     leftCardTween.onComplete(()=>
       @video.play()
       @video.onended = =>
+        @stream.play()
         csd = 
           posZ : @camera.position.z
         fsd = 
           posZ : @camera.position.z + 100
         
 
-        # camTween = new TWEEN.Tween(csd).
-        #   to(fsd, 5000).
-        #   onUpdate(()=>
-        #     console.log fsd.posZ
-        #     @camera.position.z = csd.posZ
-        #   ).start()
 
         csd = 
           rotY: @rightCard.rotation.y
         fsd =
           rotY: @leftCard.rotation.y + .1
         rightCardTween = new TWEEN.Tween(csd).
-          to(fsd, 2000).
+          to(fsd, @cardOpenTime).
           onUpdate(()=>
             @rightCard.rotation.y = csd.rotY
           ).start()
         rightCardTween.onComplete(()=>
-          @explodeCard()
+          @photos.beginAnimating()
+          @explodingInProgress = true
+
         )
     )
 
   tesselateCard: ->
-    tesselateModifier = new THREE.TessellateModifier(4)
+    tesselateModifier = new THREE.TessellateModifier(2)
     explodeModifier = new THREE.ExplodeModifier()
 
     @leftCard.geometry.dynamic = true
@@ -141,21 +138,22 @@ class Card
     
     v = 0
     for f in [0...@rightCard.geometry.faces.length]
-      velocity = new THREE.Vector3 @rf(-1, 1), @rf(-1, 1), @rf(-1,1)
+      velocity = new THREE.Vector3 0, 0, 0
+      acceleration = new THREE.Vector3 @rf(-@accelRange, @accelRange), @rf(-@accelRange, @accelRange), @rf(-@accelRange, @accelRange)
       for i in [0...3]
         @rightCard.geometry.vertices[v].velocity = velocity
+        @rightCard.geometry.vertices[v].acceleration = acceleration
         v+=1
 
   explodeCard: ->
     for i in [0...@rightCard.geometry.vertices.length]
       vertex = @rightCard.geometry.vertices[i]
       vertex.add vertex.velocity
-    setTimeout(=>
-      @explodeCard()
-    , 16)
+      vertex.velocity.add vertex.acceleration
 
   update: (time)->
-      
+    if @explodingInProgress
+      @explodeCard()
     @leftCard.geometry.verticesNeedUpdate = true
     @leftCard.geometry.computeFaceNormals()
     @leftCard.geometry.normalsNeedUpdate = true
