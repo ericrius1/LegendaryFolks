@@ -39,7 +39,7 @@ class Card
 
 
     leftOuterImage = document.createElement('img')
-    leftOuterImage.src = 'images/flowers.jpg'
+    leftOuterImage.src = 'images/momdad.jpg'
     leftOuterTexture = new THREE.Texture(leftOuterImage);
     leftOuterImage.addEventListener( 'load',  ( event )-> 
       leftOuterTexture.needsUpdate = true;
@@ -54,7 +54,7 @@ class Card
     @videoTexture.generateMipmaps = false;
 
     rightOuterImage = document.createElement('img')
-    rightOuterImage.src = 'images/outer-back.jpg'
+    rightOuterImage.src = 'images/back.jpg'
     rightOuterTexture = new THREE.Texture(rightOuterImage);
     rightOuterImage.addEventListener( 'load',  ( event )-> 
       rightOuterTexture.needsUpdate = true;
@@ -118,9 +118,10 @@ class Card
             @rightCard.rotation.y = csd.rotY
           ).start()
         rightCardTween.onComplete(()=>
-          @photos.beginAnimating()
-          @explodingInProgress = true
-
+          setTimeout =>
+            @photos.beginAnimating()
+            @explodingInProgress = true
+          , 2000
         )
     )
 

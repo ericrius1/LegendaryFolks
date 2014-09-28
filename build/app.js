@@ -38061,7 +38061,7 @@ scene = new THREE.Scene();
 
 camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.001, 20000);
 
-camera.position.z = 50;
+camera.position.z = 30;
 
 renderer = new THREE.WebGLRenderer({
   antialias: true
@@ -38151,7 +38151,7 @@ Card = (function() {
       fragmentShader: document.getElementById('fragmentShader').textContent
     });
     leftOuterImage = document.createElement('img');
-    leftOuterImage.src = 'images/flowers.jpg';
+    leftOuterImage.src = 'images/momdad.jpg';
     leftOuterTexture = new THREE.Texture(leftOuterImage);
     leftOuterImage.addEventListener('load', function(event) {
       return leftOuterTexture.needsUpdate = true;
@@ -38163,7 +38163,7 @@ Card = (function() {
     this.videoTexture.format = THREE.RGBFormat;
     this.videoTexture.generateMipmaps = false;
     rightOuterImage = document.createElement('img');
-    rightOuterImage.src = 'images/outer-back.jpg';
+    rightOuterImage.src = 'images/back.jpg';
     rightOuterTexture = new THREE.Texture(rightOuterImage);
     rightOuterImage.addEventListener('load', function(event) {
       return rightOuterTexture.needsUpdate = true;
@@ -38225,8 +38225,10 @@ Card = (function() {
             return _this.rightCard.rotation.y = csd.rotY;
           }).start();
           return rightCardTween.onComplete(function() {
-            _this.photos.beginAnimating();
-            return _this.explodingInProgress = true;
+            return setTimeout(function() {
+              _this.photos.beginAnimating();
+              return _this.explodingInProgress = true;
+            }, 2000);
           });
         };
       };
@@ -38308,7 +38310,7 @@ Photos = (function() {
   function Photos(scene) {
     var i, image, loadImage, texture, _i, _ref;
     this.scene = scene;
-    this.numPhotos = 20;
+    this.numPhotos = 23;
     this.photos = [];
     this.animating = false;
     for (i = _i = 1, _ref = this.numPhotos; 1 <= _ref ? _i <= _ref : _i >= _ref; i = 1 <= _ref ? ++_i : --_i) {

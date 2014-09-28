@@ -5,7 +5,7 @@ rf = THREE.Math.randFloat;
 
 class Photos
   constructor: (@scene)->
-    @numPhotos = 20
+    @numPhotos = 23
     @photos = []
     @animating = false
     for i in [1..@numPhotos]
