@@ -38075,7 +38075,7 @@ controls = new THREE.OrbitControls(camera);
 
 audioController = new AudioController();
 
-stream = new Stream('/videos/fragments.mp3', audioController);
+stream = new Stream('videos/fragments.mp3', audioController);
 
 photos = new Photos(scene);
 
