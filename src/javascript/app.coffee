@@ -15,7 +15,7 @@ HEIGHT = window.innerHeight
 clock = new THREE.Clock()
 scene = new THREE.Scene()
 camera = new THREE.PerspectiveCamera(50, WIDTH/HEIGHT, 0.001, 20000)
-camera.position.z = 30
+camera.position.z = 40
 renderer = new THREE.WebGLRenderer({antialias: true})
 renderer.setSize WIDTH, HEIGHT
 document.body.appendChild renderer.domElement
