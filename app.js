@@ -38031,7 +38031,7 @@ TWEEN.Interpolation = {
 
 module.exports=TWEEN;
 },{}],4:[function(require,module,exports){
-var AudioController, AudioTexture, Card, HEIGHT, Photos, Stream, THREE, TWEEN, WIDTH, animate, audioController, camera, card, clock, controls, onWindowResize, photos, renderer, scene, time;
+var AudioController, AudioTexture, Card, HEIGHT, Photos, Stream, THREE, TWEEN, WIDTH, animate, audioController, camera, card, clock, controls, onWindowResize, photos, renderer, scene, stream, time;
 
 THREE = require('three');
 
@@ -38075,9 +38075,11 @@ controls = new THREE.OrbitControls(camera);
 
 audioController = new AudioController();
 
-card = new Card(scene, clock, camera);
+stream = new Stream('/videos/fragments.mp3', audioController);
 
 photos = new Photos(scene);
+
+card = new Card(scene, clock, camera, photos, stream);
 
 animate = function() {
   requestAnimationFrame(animate);
@@ -38119,15 +38121,19 @@ require('TessellateModifier');
 require('ExplodeModifier');
 
 Card = (function() {
-  function Card(scene, clock, camera) {
+  function Card(scene, clock, camera, photos, stream) {
     var csd, fsd, geo, leftCardTween, leftOuterImage, leftOuterTexture, leftTextures, rightOuterImage, rightOuterTexture, rightTextures;
     this.scene = scene;
     this.clock = clock;
     this.camera = camera;
-    this.cardOpenTime = 2000;
+    this.photos = photos;
+    this.stream = stream;
+    this.explodingInProgress = false;
+    this.cardOpenTime = 5000;
     this.rf = THREE.Math.randFloat;
     this.resolution = new THREE.Vector2(17, 22);
     geo = new THREE.PlaneGeometry(this.resolution.x, this.resolution.y);
+    this.accelRange = 0.01;
     geo.merge(geo.clone(), new THREE.Matrix4().makeRotationY(Math.PI), 1);
     geo.applyMatrix(new THREE.Matrix4().makeTranslation(this.resolution.x / 2, 0, 0));
     this.leftInnerMaterial = new THREE.ShaderMaterial({
@@ -38196,12 +38202,13 @@ Card = (function() {
       return function() {
         return _this.leftCard.rotation.y = csd.rotY;
       };
-    })(this)).start();
+    })(this)).delay(3000).start();
     leftCardTween.onComplete((function(_this) {
       return function() {
         _this.video.play();
         return _this.video.onended = function() {
           var rightCardTween;
+          _this.stream.play();
           csd = {
             posZ: _this.camera.position.z
           };
@@ -38214,11 +38221,12 @@ Card = (function() {
           fsd = {
             rotY: _this.leftCard.rotation.y + .1
           };
-          rightCardTween = new TWEEN.Tween(csd).to(fsd, 2000).onUpdate(function() {
+          rightCardTween = new TWEEN.Tween(csd).to(fsd, _this.cardOpenTime).onUpdate(function() {
             return _this.rightCard.rotation.y = csd.rotY;
           }).start();
           return rightCardTween.onComplete(function() {
-            return _this.explodeCard();
+            _this.photos.beginAnimating();
+            return _this.explodingInProgress = true;
           });
         };
       };
@@ -38226,8 +38234,8 @@ Card = (function() {
   }
 
   Card.prototype.tesselateCard = function() {
-    var explodeModifier, f, i, tesselateModifier, v, velocity, _i, _ref, _results;
-    tesselateModifier = new THREE.TessellateModifier(4);
+    var acceleration, explodeModifier, f, i, tesselateModifier, v, velocity, _i, _ref, _results;
+    tesselateModifier = new THREE.TessellateModifier(2);
     explodeModifier = new THREE.ExplodeModifier();
     this.leftCard.geometry.dynamic = true;
     tesselateModifier.modify(this.leftCard.geometry);
@@ -38238,12 +38246,14 @@ Card = (function() {
     v = 0;
     _results = [];
     for (f = _i = 0, _ref = this.rightCard.geometry.faces.length; 0 <= _ref ? _i < _ref : _i > _ref; f = 0 <= _ref ? ++_i : --_i) {
-      velocity = new THREE.Vector3(this.rf(-1, 1), this.rf(-1, 1), this.rf(-1, 1));
+      velocity = new THREE.Vector3(0, 0, 0);
+      acceleration = new THREE.Vector3(this.rf(-this.accelRange, this.accelRange), this.rf(-this.accelRange, this.accelRange), this.rf(-this.accelRange, this.accelRange));
       _results.push((function() {
         var _j, _results1;
         _results1 = [];
         for (i = _j = 0; _j < 3; i = ++_j) {
           this.rightCard.geometry.vertices[v].velocity = velocity;
+          this.rightCard.geometry.vertices[v].acceleration = acceleration;
           _results1.push(v += 1);
         }
         return _results1;
@@ -38253,19 +38263,20 @@ Card = (function() {
   };
 
   Card.prototype.explodeCard = function() {
-    var i, vertex, _i, _ref;
+    var i, vertex, _i, _ref, _results;
+    _results = [];
     for (i = _i = 0, _ref = this.rightCard.geometry.vertices.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
       vertex = this.rightCard.geometry.vertices[i];
       vertex.add(vertex.velocity);
+      _results.push(vertex.velocity.add(vertex.acceleration));
     }
-    return setTimeout((function(_this) {
-      return function() {
-        return _this.explodeCard();
-      };
-    })(this), 16);
+    return _results;
   };
 
   Card.prototype.update = function(time) {
+    if (this.explodingInProgress) {
+      this.explodeCard();
+    }
     this.leftCard.geometry.verticesNeedUpdate = true;
     this.leftCard.geometry.computeFaceNormals();
     this.leftCard.geometry.normalsNeedUpdate = true;
@@ -38283,7 +38294,7 @@ module.exports = Card;
 
 
 },{"ExplodeModifier":9,"Perlin":11,"TessellateModifier":13,"three":2,"tween.js":3,"underscore":1}],6:[function(require,module,exports){
-var Perlin, Photos, THREE, _;
+var Perlin, Photos, THREE, rf, _;
 
 THREE = require('three');
 
@@ -38291,12 +38302,15 @@ _ = require('underscore');
 
 Perlin = require('Perlin');
 
+rf = THREE.Math.randFloat;
+
 Photos = (function() {
   function Photos(scene) {
     var i, image, loadImage, texture, _i, _ref;
     this.scene = scene;
     this.numPhotos = 20;
     this.photos = [];
+    this.animating = false;
     for (i = _i = 1, _ref = this.numPhotos; 1 <= _ref ? _i <= _ref : _i >= _ref; i = 1 <= _ref ? ++_i : --_i) {
       image = document.createElement('img');
       image.src = 'images/photos/' + i + '.jpg';
@@ -38311,8 +38325,10 @@ Photos = (function() {
             });
             photo = new THREE.Mesh(new THREE.PlaneGeometry(image.width, image.height), mat);
             photo.scale.multiplyScalar(0.01);
-            photo.position.set(_.random(-100, 100), _.random(-100, 100), _.random(-100, 100));
-            return _this.scene.add(photo);
+            photo.position.set(_.random(-20, 20), 20 + (i * 7) + rf(-10, 10), rf(0, 20));
+            photo.velocity = rf(.03, 0.05);
+            _this.scene.add(photo);
+            return _this.photos.push(photo);
           });
         };
       })(this);
@@ -38320,7 +38336,17 @@ Photos = (function() {
     }
   }
 
-  Photos.prototype.update = function(time) {};
+  Photos.prototype.beginAnimating = function() {
+    return this.animating = true;
+  };
+
+  Photos.prototype.update = function(time) {
+    if (this.animating) {
+      return _.each(this.photos, function(photo) {
+        return photo.position.y -= photo.velocity;
+      });
+    }
+  };
 
   return Photos;
 
