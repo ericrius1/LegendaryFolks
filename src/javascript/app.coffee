@@ -15,11 +15,10 @@ HEIGHT = window.innerHeight
 clock = new THREE.Clock()
 scene = new THREE.Scene()
 camera = new THREE.PerspectiveCamera(50, WIDTH/HEIGHT, 0.001, 20000)
-camera.position.z = 40
+camera.position.z = 35
 renderer = new THREE.WebGLRenderer({antialias: true})
 renderer.setSize WIDTH, HEIGHT
 document.body.appendChild renderer.domElement
-controls = new THREE.OrbitControls(camera)
 
 #color, intensity, distance
 # pointLight  = new THREE.PointLight(new THREE.Color(0xffffff), 2.0)
@@ -44,7 +43,6 @@ animate = ()->
   requestAnimationFrame(animate)
   renderer.render scene, camera
   audioController.update()
-  controls.update()
   photos.update()
   time = clock.getElapsedTime()
   card.update(time)

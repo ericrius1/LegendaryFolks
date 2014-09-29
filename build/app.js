@@ -38031,7 +38031,7 @@ TWEEN.Interpolation = {
 
 module.exports=TWEEN;
 },{}],4:[function(require,module,exports){
-var AudioController, AudioTexture, Card, HEIGHT, Photos, Stream, THREE, TWEEN, WIDTH, animate, audioController, camera, card, clock, controls, onWindowResize, photos, renderer, scene, stream, time;
+var AudioController, AudioTexture, Card, HEIGHT, Photos, Stream, THREE, TWEEN, WIDTH, animate, audioController, camera, card, clock, onWindowResize, photos, renderer, scene, stream, time;
 
 THREE = require('three');
 
@@ -38061,7 +38061,7 @@ scene = new THREE.Scene();
 
 camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.001, 20000);
 
-camera.position.z = 40;
+camera.position.z = 35;
 
 renderer = new THREE.WebGLRenderer({
   antialias: true
@@ -38070,8 +38070,6 @@ renderer = new THREE.WebGLRenderer({
 renderer.setSize(WIDTH, HEIGHT);
 
 document.body.appendChild(renderer.domElement);
-
-controls = new THREE.OrbitControls(camera);
 
 audioController = new AudioController();
 
@@ -38085,7 +38083,6 @@ animate = function() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
   audioController.update();
-  controls.update();
   photos.update();
   time = clock.getElapsedTime();
   card.update(time);
